@@ -1,0 +1,166 @@
+## 痛点开场
+
+**口播台词**：
+
+> 很多同学私信我说八股文多到爆炸，到底该怎么记。面试题又多又难记，今天我们就自己做一个能无限扩展的面试刷题小工具，不但自带题库，还能直接把自己的 MD 笔记拖进去变成记忆卡片，想刷什么刷什么。
+
+> 好多同学私信我吐槽，计算机八股文多到根本背不完，面试题又杂又难记。
+>
+> 我也是计算机专业正要面临实习、就业的大学生，今天就带大家亲手做一个能面试刷题小工具。自带题库不说，还能直接把自己的MD笔记拖进去做成记忆卡片，辅助我们准备面试
+
+## 第一步 — 让豆包生成完整需求 + 内置题
+
+**给豆包提示词 1**：
+
+```Plain
+你是一名资深产品经理，帮我做一款专门给计算机专业学生用的 **面试八股文记忆卡片工具**，纯前端单页网页，浏览器直接打开就能用。
+
+你先给我输出以下内容：
+1. 一份完整的产品需求文档（功能模块、交互逻辑、UI 风格）
+2. 内置 24 道经典面试题，覆盖：javase，java集合，juc，mysql，redis，spring，每道题包含「题目」和「标准答案」，答案控制在 80 字以内，方便记忆
+3. 题库可扩展：不能写死，要支持导入自己的 .md 笔记文件
+4. 以上全部用标准 Markdown 格式输出
+```
+
+**口播台词**：
+
+> 第一步，直接让豆包把需求文档和内置题库一次性搞定。
+
+**操作**：打开豆包专家模式+“帮我写作”模式，等待豆包输出
+
+**预期画面效果**：
+
+![img](https://ncnaoz3614e1.feishu.cn/space/api/box/stream/download/asynccode/?code=NmM3YTY1MjJmMDllMzM2ZWMzZjNiMzEzM2JhMzYzMTBfdXhEOEJJVlEwR0Fia0d6d2toMmh0T0JWWEFKelNYNkNfVG9rZW46T2JEZWJLb0FMb21odEV4N3dlcGNoUTJJbks4XzE3Nzg2NTQ3MTU6MTc3ODY1ODMxNV9WNA)
+
+## 第二步 — 发需求 + 指定导入 MD 功能，生成完整源码（55-115 秒）
+
+**画面**：
+
+1. 全选复制豆包上一步输出的需求 + 题库内容
+2. 在同一个对话窗口粘贴豆包刚生成的需求文档，并附上“你是一个资深前端程序员，熟练掌握HTML+CSS+JS等技术栈，帮我根据上面这些需求文档，制作一个大学生八股文记忆卡片工具”
+3. 打开豆包专家模式 + 编程模式
+   1. 
+
+**预期效果**：
+
+![img](https://ncnaoz3614e1.feishu.cn/space/api/box/stream/download/asynccode/?code=OGY5OWFlYjAyZTViODBiNzZlNmJiYWNlNjA5MzdiYWRfMlE2Z2VBc25jNFlEV0dsMFRyN282ZHVVYWhaa1R2UWVfVG9rZW46QU5VbWI2MDRvb0RTU3Z4eEYxeGNqWTNIblBmXzE3Nzg2NTQ3MTU6MTc3ODY1ODMxNV9WNA)
+
+## 第三步本地保存 + 基础功能演示
+
+ 保存代码，打开浏览器看效果
+
+1. 全选复制豆包最终完整代码
+2. 桌面新建文件夹 `面试刷题`，新建 `flashcard.html`，粘贴保存
+3. 双击用浏览器打开
+   1. 
+
+**口播台词**：
+
+> 代码复制下来，桌面新建 HTML 文件粘贴保存，双击打开就能用。先看看基础功能——
+
+**基础功能演示清单**（每个 3-5 秒）：
+
+| 序号 | 演示动作     | 口播                                           | 预期画面效果                          |
+| ---- | ------------ | ---------------------------------------------- | ------------------------------------- |
+| 1    | 首页整体展示 | "深色主题，自带 20 道高频面试题，四大分类"     | 分类标签栏 + 第一张卡片，深色专业风格 |
+| 2    | 点击卡片翻转 | "点击卡片 CSS 3D 翻转，正面题目，背面标准答案" | 卡片流畅翻转 180°，答案区等宽字体     |
+| 3    | 切换分类     | "顶部切换分类，只看mysql的就点mysql"           | 点击「mysql」标签，卡片区刷新         |
+| 4    | 标记已掌握   | "刷完一道标一道，边框变色，进度条自动更新"     | 点击「✅ 已掌握」→ 绿边框 + 进度条跳动 |
+| 5    | 刷新验证     | "刷新页面，掌握状态还在，localStorage 持久化"  | 刷新浏览器，标记状态保留              |
+|      |              |                                                |                                       |
+
+**预期画面效果**：
+
+![img](https://ncnaoz3614e1.feishu.cn/space/api/box/stream/download/asynccode/?code=Yjg3YjQ0NWI2NzY2MzRlZTljYTRlN2Q2MjY1Yzg3ZThfSERsWEE4WFZTWkwwdVVrZGpvV0FIZFVzSHZhdWxRRm1fVG9rZW46QjJqOWJkejhxb3haWld4UjU4dmNDNmdybk9mXzE3Nzg2NTQ3MTU6MTc3ODY1ODMxNV9WNA)
+
+![img](https://ncnaoz3614e1.feishu.cn/space/api/box/stream/download/asynccode/?code=YTFmOGY2OWM3YzQyMTQ1NmM3ZjBlNjQ4ZTA2NmRhYTRfZjFiT3VLeXhzRkE1a1R6VWowQjRhTGcyd2Z2Sjl2aDBfVG9rZW46VXAzZmJRdUh6b29DMzF4VDhzTWNEQ0kybmRnXzE3Nzg2NTQ3MTU6MTc3ODY1ODMxNV9WNA)
+
+![img](https://ncnaoz3614e1.feishu.cn/space/api/box/stream/download/asynccode/?code=NjdiYzBlY2Y1MDY1NWIwZjc4NzcwNDc4ZTg1OTI4NzVfZWNOZ0MxWThpcE5LRXVITWZYeFlNQ25TdFVRTTYzYWFfVG9rZW46VW5GbWJEeGJPb0gzWXp4NG1DRWN0dUE3bkZmXzE3Nzg2NTQ3MTU6MTc3ODY1ODMxNV9WNA)
+
+## 第五步 — 核心功能：导入自有 MD 笔记
+
+**画面**：
+
+1. 提前准备好一个 `我的面试笔记.md` 文件，包含几道题目，但是格式不对
+2. 在浏览器中打开文件预览，让观众看到 MD 源文件格式
+3. 直接把我自己的笔记，发给豆包，让她转化为正确的格式，并保存
+4. 回到 flashcard 页面，点击右上角「导入MD笔记」
+5. 选择 MD 文件
+6. 展示解析结果
+   1. 
+
+**口播台词**：
+
+> 重点来了——导入 MD 题库。我平时自己整理面试笔记，就按 # 标题写题目，下面写答案。现在直接点导入，选我的 md 文件——
+
+> 全部解析成功，并自动找到分类，原来的内置题库不受影响。你记了多少笔记就导多少，这个刷题工具可以无限扩展。
+
+**展示用的示例 笔记MD 文件内容**：
+
+```Markdown
+# Java 中 HashMap 的底层实现原理？
+JDK 1.8 之前是数组+链表，1.8 之后是数组+链表+红黑树。当链表长度超过 8 且数组长度 >= 64 时，链表转为红黑树。put 时先计算 hash，找到桶位置，若冲突则链表/红黑树插入。
+
+# Spring 的 IOC 和 AOP 分别是什么？
+IOC（控制反转）：将对象创建和依赖管理交给 Spring 容器，通过 DI 注入。AOP（面向切面编程）：将横切关注点（日志、事务）从业务逻辑中分离，通过动态代理实现。
+
+# MySQL 索引为什么用 B+ 树而不用 B 树？
+B+ 树非叶子节点不存数据，只存索引，单次 IO 能读到更多索引项；叶子节点有双向链表，范围查询效率更高；查询性能更稳定，每次都要走到叶子节点。
+
+# 线程池的核心参数有哪些？
+corePoolSize（核心线程数）、maximumPoolSize（最大线程数）、keepAliveTime（空闲存活时间）、unit（时间单位）、workQueue（阻塞队列）、threadFactory（线程工厂）、handler（拒绝策略）。
+
+# Redis 缓存雪崩、穿透、击穿的区别？
+雪崩：大量 key 同时过期，请求打到 DB。穿透：查询不存在的数据，绕过缓存打 DB。击穿：单个热点 key 过期瞬间大量并发。解决方案分别是：随机过期时间、布隆过滤器/空值缓存、互斥锁/永不过期。
+```
+
+![img](https://ncnaoz3614e1.feishu.cn/space/api/box/stream/download/asynccode/?code=MDA3Y2M5MDE1OTc4NWI2MWRhNTk0YTZkOWE0OTA1YTNfeTZ0V3VpQWp3dHp4clBWNWkxV3RHTm9IbXh5T05ZNnNfVG9rZW46VVRMZ2JLUENZb1lQdUV4R2h1N2NEbnRxbm1yXzE3Nzg2NTQ3MTU6MTc3ODY1ODMxNV9WNA)
+
+![img](https://ncnaoz3614e1.feishu.cn/space/api/box/stream/download/asynccode/?code=NjZlYTEyZTgwNzU4NDFmOWQxYTIxZjNkMGY4NzYzMzJfaHc4RmlsNUxZa0lDWEw0a2VETUNSWjBqanA0QjFXT0ZfVG9rZW46V0U2amJMTTFGb0UxVE94RVBtQmNaZDRUbmljXzE3Nzg2NTQ3MTU6MTc3ODY1ODMxNV9WNA)
+
+## 结尾
+
+**口播台词**：
+
+> 全程三分钟，一行代码没写，用豆包做出了一个属于我自己的无限刷题工具。无论是期末考试还是春招秋招，你平时记什么笔记就导什么卡，完全按自己的节奏刷。提示词我全部放在评论区，直接复制就能复刻同款。
+
+# 豆包提示词
+
+## 提示词 1（生成需求 + 题库）
+
+```Plain
+你是一名资深产品经理，帮我做一款专门给计算机专业学生用的 **面试八股文记忆卡片工具**，纯前端单页网页，浏览器直接打开就能用。
+
+你先给我输出以下内容：
+1. 一份完整的产品需求文档（功能模块、交互逻辑、UI 风格）
+2. 内置 24 道经典面试题，覆盖：javase，java集合，juc，mysql，redis，spring，每道题包含「题目」和「标准答案」，答案控制在 80 字以内，方便记忆
+3. 题库可扩展：不能写死，要支持导入自己的 .md 笔记文件
+4. 以上全部用标准 Markdown 格式输出
+```
+
+## 提示词 2（生成源码，含 MD 导入功能）
+
+```Plain
+豆包生成的文档+“你是一个资深前端程序员，熟练掌握HTML+CSS+JS等技术栈，帮我根据上面这些需求文档，制作一个大学生八股文记忆卡片工具”
+```
+
+## 提示词 3（笔记格式标准化）
+
+```Plain
+# Java 中 HashMap 的底层实现原理？
+JDK 1.8 之前是数组+链表，1.8 之后是数组+链表+红黑树。当链表长度超过 8 且数组长度 >= 64 时，链表转为红黑树。put 时先计算 hash，找到桶位置，若冲突则链表/红黑树插入。
+
+# Spring 的 IOC 和 AOP 分别是什么？
+IOC（控制反转）：将对象创建和依赖管理交给 Spring 容器，通过 DI 注入。AOP（面向切面编程）：将横切关注点（日志、事务）从业务逻辑中分离，通过动态代理实现。
+
+# MySQL 索引为什么用 B+ 树而不用 B 树？
+B+ 树非叶子节点不存数据，只存索引，单次 IO 能读到更多索引项；叶子节点有双向链表，范围查询效率更高；查询性能更稳定，每次都要走到叶子节点。
+
+# 线程池的核心参数有哪些？
+corePoolSize（核心线程数）、maximumPoolSize（最大线程数）、keepAliveTime（空闲存活时间）、unit（时间单位）、workQueue（阻塞队列）、threadFactory（线程工厂）、handler（拒绝策略）。
+
+# Redis 缓存雪崩、穿透、击穿的区别？
+雪崩：大量 key 同时过期，请求打到 DB。穿透：查询不存在的数据，绕过缓存打 DB。击穿：单个热点 key 过期瞬间大量并发。解决方案分别是：随机过期时间、布隆过滤器/空值缓存、互斥锁/永不过期。
+
+帮我转换成你约定的笔记md格式
+```
