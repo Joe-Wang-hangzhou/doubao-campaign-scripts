@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>红黑树插入动态可视化</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='12' cy='16' r='9' fill='%23F43F5E'/%3E%3Ccircle cx='22' cy='16' r='9' fill='%23334155' stroke='%2394A3B8' stroke-width='2'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0F172A; --panel:#152238; --panel2:#1A2B4A; --line:#26365C;
+  --text:#E2E8F0; --dim:#8CA3C4; --faint:#5A7298;
+  --red:#F43F5E; --red-edge:#FF8FA3;
+  --black:#334155; --black-edge:#94A3B8;
+  --cyan:#22D3EE; --amber:#FBBF24; --violet:#A78BFA;
+  --mono:"SF Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+
+/* ===== 顶栏 ===== */
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  padding:16px 22px 10px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand .logo{display:flex;align-items:center;gap:5px}
+.brand .logo i{width:13px;height:13px;border-radius:50%;display:block}
+.brand .logo i.r{background:var(--red);box-shadow:0 0 10px rgba(244,63,94,.8)}
+.brand .logo i.b{background:var(--black);border:1.5px solid var(--black-edge)}
+.brand h1{font-size:19px;font-weight:700;letter-spacing:.5px}
+.brand p{font-size:11.5px;color:var(--dim);margin-top:2px}
+
+.seq{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:var(--panel);
+  border:1px solid var(--line);border-radius:10px;padding:7px 12px}
+.seq .cap{font-size:11px;color:var(--dim);margin-right:2px}
+.seq .chip{min-width:34px;text-align:center;padding:3px 8px;border-radius:7px;font-family:var(--mono);
+  font-size:12.5px;font-weight:600;color:var(--dim);background:rgba(148,163,184,.08);border:1px solid transparent;
+  transition:all .3s}
+.seq .chip.done{color:#9FE7F5;border-color:rgba(34,211,238,.35);background:rgba(34,211,238,.08)}
+.seq .chip.now{color:#08131F;background:var(--cyan);box-shadow:0 0 12px rgba(34,211,238,.55);transform:scale(1.08)}
+
+/* ===== 阶段流程条 ===== */
+.stages{display:flex;align-items:center;gap:8px;padding:2px 22px 10px;flex-wrap:wrap}
+.stage{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--faint);padding:5px 12px;
+  border-radius:999px;border:1px solid var(--line);transition:all .3s}
+.stage .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.stage.on{color:#fff;background:rgba(34,211,238,.1);border-color:rgba(34,211,238,.45)}
+.stage.on .dot{box-shadow:0 0 8px currentColor}
+.stage-arrow{color:var(--faint);font-size:12px}
+.stage#stg-insert.on{background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.45);color:#FDE68A}
+.stage#stg-fix.on{background:rgba(167,139,250,.12);border-color:rgba(167,139,250,.45);color:#DDD6FE}
+
+/* ===== 工具条 ===== */
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 22px 4px}
+.btn{display:flex;align-items:center;justify-content:center;gap:7px;height:44px;min-width:44px;
+  padding:0 16px;border-radius:10px;background:var(--panel);border:1px solid var(--line);
+  font-size:13.5px;font-weight:600;color:var(--text);transition:all .15s}
+.btn:hover{border-color:var(--cyan);color:var(--cyan);transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn svg{width:16px;height:16px;fill:currentColor}
+.btn.primary{background:linear-gradient(135deg,#22D3EE,#0EA5C8);border-color:transparent;color:#04121B}
+.btn.primary:hover{box-shadow:0 0 16px rgba(34,211,238,.5);color:#04121B}
+.btn.icon{padding:0;width:44px}
+.spacer{flex:1}
+.stepinfo{font-family:var(--mono);font-size:12.5px;color:var(--dim);padding:0 6px}
+.speed{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);
+  border-radius:10px;padding:0 12px;height:44px}
+.speed label{font-size:11.5px;color:var(--dim);white-space:nowrap}
+.speed input[type=range]{width:110px;accent-color:var(--cyan);height:22px}
+.speed b{font-family:var(--mono);font-size:12px;color:#9FE7F5;min-width:56px;text-align:right}
+
+/* ===== 进度条 ===== */
+.progress{height:3px;background:rgba(148,163,184,.15);margin:10px 22px 0;border-radius:2px;overflow:hidden}
+.progress>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#22D3EE,#A78BFA);
+  transition:width .3s}
+
+/* ===== 主区 ===== */
+main{display:flex;gap:16px;padding:16px 22px;align-items:stretch}
+.panel{background:linear-gradient(180deg,var(--panel),#101D36);border:1px solid var(--line);
+  border-radius:14px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:11px 16px;border-bottom:1px solid var(--line);background:rgba(15,23,42,.5)}
+.panel-head h2{font-size:13.5px;font-weight:700;letter-spacing:1px;color:#BBD3F2}
+.panel-head h2::before{content:"";display:inline-block;width:3px;height:13px;border-radius:2px;
+  background:var(--cyan);margin-right:9px;vertical-align:-1px}
+.panel-head .sub{font-size:11.5px;color:var(--faint);font-family:var(--mono)}
+#tree-panel{flex:3.1}
+#code-panel{flex:2;min-width:320px}
+
+/* 树画布 */
+#tree-wrap{position:relative;flex:1;overflow:auto;padding:6px;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 0%,rgba(34,211,238,.07),transparent 65%),
+    linear-gradient(rgba(148,163,184,.045) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(148,163,184,.045) 1px,transparent 1px);
+  background-size:auto,26px 26px,26px 26px;background-position:center}
+#tree{display:block;width:100%;height:auto}
+.legend{display:flex;gap:14px;padding:9px 16px;border-top:1px solid var(--line);font-size:11.5px;color:var(--dim);
+  background:rgba(15,23,42,.4);flex-wrap:wrap}
+.legend .lg{display:flex;align-items:center;gap:6px}
+.legend .sw{width:12px;height:12px;border-radius:4px;display:inline-block}
+.legend .sw.r{background:var(--red)}
+.legend .sw.b{background:var(--black);border:1px solid var(--black-edge)}
+.legend .sw.z{background:transparent;border:1.5px dashed var(--cyan)}
+.legend .sw.a{background:transparent;border:1.5px solid var(--amber)}
+.prop-note{font-size:11px;color:var(--faint);padding:8px 16px 10px;border-top:1px dashed var(--line);line-height:1.7}
+.prop-note b{color:var(--dim);font-weight:600}
+
+/* 节点样式（SVG） */
+.node{transition:transform .5s cubic-bezier(.4,0,.2,1)}
+.node .body{transition:fill .45s ease,stroke .45s ease}
+.ring-z{fill:rgba(34,211,238,.10);stroke:var(--cyan);stroke-width:2;stroke-dasharray:5 4;opacity:0;transition:opacity .25s}
+.ring-z.on{opacity:1;animation:breathe 1.6s ease-in-out infinite}
+.ring-x{fill:none;stroke:rgba(34,211,238,.85);stroke-width:1.5;opacity:0;transition:opacity .25s}
+.ring-x.on{opacity:.95}
+.ring-g{fill:none;stroke:var(--amber);stroke-width:2;opacity:0;transition:opacity .25s}
+.ring-g.on{opacity:1;animation:pulse 1s ease-in-out infinite}
+.node .lab{font-size:15px;font-weight:700;fill:#F8FAFC;text-anchor:middle;dominant-baseline:central;
+  font-family:var(--mono);user-select:none}
+.edge{stroke:#31436B;stroke-width:2;transition:all .5s cubic-bezier(.4,0,.2,1)}
+.edge.nil{stroke:#2A3A5E;stroke-width:1.5;stroke-dasharray:2 3}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes breathe{0%,100%{opacity:1}50%{opacity:.55}}
+
+/* ===== 伪代码区 ===== */
+#codebox{flex:1;overflow:auto;padding:12px 0;font-family:var(--mono);font-size:12.8px;line-height:1.9;
+  background:rgba(7,12,24,.6)}
+.cl{display:flex;align-items:baseline;padding:1px 16px 1px 8px;border-left:3px solid transparent;transition:all .2s;
+  white-space:pre}
+.cl .ln{width:34px;flex:none;text-align:right;color:#3E5580;font-size:11px;user-select:none;padding-right:12px}
+.cl .tx{color:#B8CBE8}
+.cl .cm{color:#5A7298;font-size:11.5px}
+.cl.hd{font-weight:700;color:#9FE7F5;border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:4px}
+.cl.hd .ln{color:transparent}
+.cl.on{background:rgba(34,211,238,.12);border-left-color:var(--cyan)}
+.cl.on .tx{color:#EAFBFF;font-weight:600}
+.cl.on .cm{color:#9FE7F5}
+#code-empty{color:var(--faint);font-size:12px;text-align:center;padding:40px 10px}
+
+/* ===== 底部说明条 ===== */
+.msgbar{display:flex;align-items:center;gap:12px;margin:0 22px 18px;background:linear-gradient(90deg,#13233F,#152238);
+  border:1px solid var(--line);border-radius:12px;padding:13px 16px;min-height:56px}
+.msgbar .bar{width:5px;height:30px;border-radius:3px;background:var(--cyan);flex:none;transition:background .3s}
+.msgbar .ic{width:26px;height:26px;flex:none;display:flex;align-items:center;justify-content:center;
+  border-radius:8px;background:rgba(34,211,238,.12);color:var(--cyan);font-family:var(--mono);font-size:12px;font-weight:700}
+.msgbar .txt{flex:1;font-size:14px;color:#DCE7F7;line-height:1.55;min-width:0}
+.msgbar .txt b{color:#9FE7F5;font-family:var(--mono);font-weight:600}
+.msgbar .pos{font-family:var(--mono);font-size:12px;color:var(--dim);flex:none}
+
+footer{text-align:center;color:var(--faint);font-size:11px;padding:0 16px 16px}
+
+@media (max-width:960px){
+  main{flex-direction:column}
+  #code-panel{min-width:0;max-height:420px}
+  #tree-panel{min-height:320px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo">
+      <div class="dots"><i class="r"></i><i class="b"></i></div>
+    </div>
+    <div>
+      <h1>红黑树插入动态可视化</h1>
+      <p>RB-INSERT · 分步演示 变色 / 旋转 / 修复</p>
+    </div>
+  </div>
+  <div class="seq">
+    <span class="cap">插入序列</span>
+    <span id="seqchips"></span>
+  </div>
+</header>
+
+<div class="stages">
+  <span class="stage" id="stg-search"><i class="dot"></i>寻找位置</span>
+  <span class="stage-arrow">→</span>
+  <span class="stage" id="stg-insert"><i class="dot"></i>挂入新红节点</span>
+  <span class="stage-arrow">→</span>
+  <span class="stage" id="stg-fix"><i class="dot"></i>变色 / 旋转修复</span>
+</div>
+
+<div class="toolbar">
+  <button class="btn primary" id="btn-play" title="播放 / 暂停（空格）">
+    <svg id="ic-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    <svg id="ic-pause" viewBox="0 0 24 24" style="display:none"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+    <span id="btn-play-txt">播放</span>
+  </button>
+  <button class="btn icon" id="btn-prev" title="上一步（←）">
+    <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zM20 6v12L9.5 12z"/></svg>
+  </button>
+  <button class="btn icon" id="btn-next" title="下一步（→）">
+    <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM4 6l10.5 6L4 18z"/></svg>
+  </button>
+  <button class="btn icon" id="btn-reset" title="重置">
+    <svg viewBox="0 0 24 24"><path d="M12 5V2L7 6l5 4V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+  </button>
+  <div class="spacer"></div>
+  <span class="stepinfo" id="stepinfo">0 / 0</span>
+  <div class="speed">
+    <label>速度</label>
+    <input type="range" id="speed" min="200" max="2000" step="50" value="900">
+    <b id="speedval">900ms</b>
+  </div>
+</div>
+<div class="progress"><i id="progbar"></i></div>
+
+<main>
+  <section class="panel" id="tree-panel">
+    <div class="panel-head">
+      <h2>树结构</h2>
+      <span class="sub" id="tree-sub">—</span>
+    </div>
+    <div id="tree-wrap"><svg id="tree" viewBox="0 0 700 460" preserveAspectRatio="xMidYMid meet"></svg></div>
+    <div class="legend">
+      <span class="lg"><span class="sw r"></span>红节点</span>
+      <span class="lg"><span class="sw b"></span>黑节点</span>
+      <span class="lg"><span class="sw z"></span>当前操作节点 z</span>
+      <span class="lg"><span class="sw a"></span>涉及变色 / 旋转的节点</span>
+    </div>
+    <div class="prop-note">
+      <b>红黑树性质：</b>① 每个节点非红即黑　② 根节点为黑　③ 红节点的两个孩子必为黑（无连续红）　④ 任一节点到其叶子的各路径黑高一致　⑤ NIL 叶子视为黑色
+    </div>
+  </section>
+
+  <section class="panel" id="code-panel">
+    <div class="panel-head">
+      <h2>修复伪代码</h2>
+      <span class="sub" id="code-sub">RB-INSERT-FIXUP</span>
+    </div>
+    <div id="codebox"></div>
+  </section>
+</main>
+
+<div class="msgbar">
+  <i class="bar" id="msgbar"></i>
+  <span class="ic" id="msgic">①</span>
+  <div class="txt" id="msg"></div>
+  <span class="pos" id="msgpos"></span>
+</div>
+
+<footer>红黑树插入：寻找位置 → 挂入新红节点 → 按四种情形修复（变色 / 旋转），直至满足全部性质。</footer>
+
+<script>
+(function(){
+'use strict';
+
+/* ================= 红黑树核心 ================= */
+var NIL = {key:null,color:'B',left:null,right:null,parent:null};
+
+function newNode(key){
+  return {key:key,color:'R',left:NIL,right:NIL,parent:null};
+}
+function isNil(n){return !n || n.key === null;}
+
+function leftRotate(root,x){
+  var y = x.right;
+  x.right = y.left;
+  if(!isNil(y.left)) y.left.parent = x;
+  y.parent = x.parent;
+  if(isNil(x.parent)) root = y;
+  else if(x === x.parent.left) x.parent.left = y;
+  else x.parent.right = y;
+  y.left = x;
+  x.parent = y;
+  return root;
+}
+function rightRotate(root,x){
+  var y = x.left;
+  x.left = y.right;
+  if(!isNil(y.right)) y.right.parent = x;
+  y.parent = x.parent;
+  if(isNil(x.parent)) root = y;
+  else if(x === x.parent.left) x.parent.left = y;
+  else x.parent.right = y;
+  y.right = x;
+  x.parent = y;
+  return root;
+}
+
+function cloneTree(root){
+  var memo = new Map();
+  function cl(n){
+    if(!n) return null;
+    if(memo.has(n)) return memo.get(n);
+    var c = {key:n.key,color:n.color,left:null,right:null,parent:null};
+    memo.set(n,c);
+    c.left = cl(n.left);
+    c.right = cl(n.right);
+    return c;
+  }
+  var r = cl(root);
+  (function fixP(n,p){ if(!n) return; n.parent=p; fixP(n.left,n); fixP(n.right,n); })(r,null);
+  return r;
+}
+
+/* ================= 步骤生成 ================= */
+var SEQ = [10,20,30,15,12,5,1,3];
+var steps = [];
+var phaseMap = {'search':'寻找位置','insert':'挂入节点','fix':'修复平衡'};
+
+function mk(phase,insKey,tree,zKey,lines,msg,hl){
+  steps.push({phase:phase,insKey:insKey,tree:cloneTree(tree),zKey:zKey||null,
+    lines:lines||[],msg:msg,hl:hl||{}});
+}
+function buildSteps(){
+  steps = [];
+  var root = NIL;
+  for(var i=0;i<SEQ.length;i++){
+    root = insertKey(root,SEQ[i]);
+  }
+}
+function insertKey(root,key){
+  var z = newNode(key);
+
+  /* ---- 阶段一：寻找位置 ---- */
+  if(isNil(root)){
+    mk('search',key,root,null,[2],'树为空，'+key+' 将成为根节点（先标记为红色）',{});
+  }else{
+    var y = NIL, x = root;
+    while(!isNil(x)){
+      y = x;
+      if(z.key < x.key){
+        mk('search',key,root,null,[3,4,5,6],'比较 '+key+' 与 <b>'+x.key+'</b>：'+key+' 更小，向左子树走',{x:x.key});
+        x = x.left;
+      }else{
+        mk('search',key,root,null,[3,4,5,7],'比较 '+key+' 与 <b>'+x.key+'</b>：'+key+' 更大，向右子树走',{x:x.key});
+        x = x.right;
+      }
+    }
+    mk('search',key,root,null,[8],'找到插入位置：'+key+' 将挂为 <b>'+y.key+'</b> 的'+(z.key<y.key?'左':'右')+'孩子',{x:y.key});
+  }
+
+  /* ---- 阶段二：挂入新红节点 ---- */
+  if(isNil(root)){ root = z; z.parent = NIL; }
+  else if(z.key < y.key){ y.left = z; z.parent = y; }
+  else { y.right = z; z.parent = y; }
+  z.left = NIL; z.right = NIL; z.color = 'R';
+  mk('insert',key,root,z.key,[9,10,11,12],'新节点 <b>'+key+'</b> 挂入树中，初始标记为红色（可能破坏性质③）',{z:z.key});
+
+  /* ---- 阶段三：修复平衡 ---- */
+  root = fixup(root,z,key);
+  return root;
+}
+
+function fixup(root,z,key){
+  var guard=0;
+  while(!isNil(z.parent) && z.parent.color==='R'){
+    if(++guard>60) break;
+    var p=z.parent, g=p.parent;
+    if(p === g.left){
+      var y = g.right;
+      if(y.color==='R'){
+        mk('fix',key,root,z.key,[13,14,15,16],'父 <b>'+p.key+'</b> 与叔 <b>'+y.key+'</b> 均为红色 → <b>情形1</b>（变色）',{z:z.key,group:[p.key,y.key,g.key]});
+        p.color='B'; y.color='B'; g.color='R';
+        mk('fix',key,root,z.key,[17,18,19],'父、叔变黑，祖父变红 —— 把红色"上推"给祖父',{z:z.key,group:[p.key,y.key,g.key]});
+        z=g;
+        mk('fix',key,root,z.key,[20],'z 上移至祖父 <b>'+z.key+'</b>，继续向上检查是否出现连续红',{z:z.key});
+      }else{
+        if(z===p.right){
+          mk('fix',key,root,z.key,[21,22,23],'情形2（LR）：z 是右孩子，先对父 <b>'+p.key+'</b> 左旋',{z:z.key,x:p.key});
+          z=p;
+          root=leftRotate(root,z);
+        }
+        mk('fix',key,root,z.key,[24,25,26],'情形3（LL）：父变黑、祖父变红，再对祖父 <b>'+z.parent.parent.key+'</b> 右旋',{z:z.key,group:[z.parent.key,z.parent.parent.key]});
+        z.parent.color='B';
+        z.parent.parent.color='R';
+        root=rightRotate(root,z.parent.parent);
+        mk('fix',key,root,z.key,[26],'右旋完成，子树重新平衡，局部连续红已消除',{z:z.key});
+      }
+    }else{
+      var y2 = g.left;
+      if(y2.color==='R'){
+        mk('fix',key,root,z.key,[13,27,28,29],'父 <b>'+p.key+'</b> 与叔 <b>'+y2.key+'</b> 均为红色 → <b>对称情形1</b>（变色）',{z:z.key,group:[p.key,y2.key,g.key]});
+        p.color='B'; y2.color='B'; g.color='R';
+        mk('fix',key,root,z.key,[30,31,32],'父、叔变黑，祖父变红 —— 把红色"上推"给祖父',{z:z.key,group:[p.key,y2.key,g.key]});
+        z=g;
+        mk('fix',key,root,z.key,[33],'z 上移至祖父 <b>'+z.key+'</b>，继续向上检查',{z:z.key});
+      }else{
+        if(z===p.left){
+          mk('fix',key,root,z.key,[34,35,36],'对称情形2（RL）：z 是左孩子，先对父 <b>'+p.key+'</b> 右旋',{z:z.key,x:p.key});
+          z=p;
+          root=rightRotate(root,z);
+        }
+        mk('fix',key,root,z.key,[37,38,39],'对称情形3（RR）：父变黑、祖父变红，再对祖父 <b>'+z.parent.parent.key+'</b> 左旋',{z:z.key,group:[z.parent.key,z.parent.parent.key]});
+        z.parent.color='B';
+        z.parent.parent.color='R';
+        root=leftRotate(root,z.parent.parent);
+        mk('fix',key,root,z.key,[39],'左旋完成，子树重新平衡，局部连续红已消除',{z:z.key});
+      }
+    }
+  }
+  if(root.color==='R'){
+    root.color='B';
+    mk('fix',key,root,z.key,[40],'根节点染黑，满足性质②（根为黑）',{z:z.key});
+  }else{
+    mk('fix',key,root,z.key,[40],'根节点本为黑色，性质② 已满足',{z:z.key});
+  }
+  return root;
+}
+
+/* ================= 伪代码数据 ================= */
+var CODE = [
+  {t:'RB-INSERT(T, z)',hd:1},
+  {t:'y ← T.nil'},
+  {t:'x ← T.root'},
+  {t:'while x ≠ T.nil',cm:'寻找插入位置'},
+  {t:'y ← x'},
+  {t:'if z.key < x.key'},
+  {t:'x ← x.left'},
+  {t:'else  x ← x.right'},
+  {t:'z.p ← y'},
+  {t:'if y = T.nil   T.root ← z'},
+  {t:'elif z.key < y.key   y.left ← z'},
+  {t:'else  y.right ← z'},
+  {t:'z.color ← RED',cm:'挂入新红节点'},
+  {t:'while z.p.color = RED',cm:'修复平衡'},
+  {t:'if z.p = z.p.p.left',cm:'父为左孩子'},
+  {t:'y ← z.p.p.right',cm:'叔叔'},
+  {t:'if y.color = RED',cm:'情形1 · 叔叔为红'},
+  {t:'z.p.color ← BLACK'},
+  {t:'y.color ← BLACK'},
+  {t:'z.p.p.color ← RED'},
+  {t:'z ← z.p.p'},
+  {t:'elif z = z.p.right',cm:'情形2 · LR'},
+  {t:'z ← z.p'},
+  {t:'LEFT-ROTATE(T, z)'},
+  {t:'z.p.color ← BLACK',cm:'情形3 · LL'},
+  {t:'z.p.p.color ← RED'},
+  {t:'RIGHT-ROTATE(T, z.p.p)'},
+  {t:'else',cm:'对称：父为右孩子'},
+  {t:'y ← z.p.p.left'},
+  {t:'if y.color = RED',cm:'对称情形1'},
+  {t:'z.p.color ← BLACK'},
+  {t:'y.color ← BLACK'},
+  {t:'z.p.p.color ← RED'},
+  {t:'z ← z.p.p'},
+  {t:'elif z = z.p.left',cm:'对称情形2 · RL'},
+  {t:'z ← z.p'},
+  {t:'RIGHT-ROTATE(T, z)'},
+  {t:'z.p.color ← BLACK',cm:'对称情形3 · RR'},
+  {t:'z.p.p.color ← RED'},
+  {t:'LEFT-ROTATE(T, z.p.p)'},
+  {t:'T.root.color ← BLACK'}
+];
+
+/* ================= DOM 引用 ================= */
+var svg = document.getElementById('tree');
+var codebox = document.getElementById('codebox');
+var msgEl = document.getElementById('msg');
+var msgbarEl = document.getElementById('msgbar');
+var msgicEl = document.getElementById('msgic');
+var msgposEl = document.getElementById('msgpos');
+var stepinfoEl = document.getElementById('stepinfo');
+var progbarEl = document.getElementById('progbar');
+var treeSubEl = document.getElementById('tree-sub');
+var speedEl = document.getElementById('speed');
+var speedValEl = document.getElementById('speedval');
+var seqChipsEl = document.getElementById('seqchips');
+
+var PHASE_ICON = {search:'①',insert:'②',fix:'③'};
+var PHASE_COLOR = {search:'#22D3EE',insert:'#FBBF24',fix:'#A78BFA'};
+var STAGE_IDS = {search:'stg-search',insert:'stg-insert',fix:'stg-fix'};
+
+/* 伪代码渲染 */
+function buildCode(){
+  var html='';
+  for(var i=0;i<CODE.length;i++){
+    var c=CODE[i];
+    html += '<div class="cl'+(c.hd?' hd':'')+'" data-ln="'+(i+1)+'">'
+      +'<span class="ln">'+(c.hd?'':(i+1))+'</span>'
+      +'<span class="tx">'+c.t+'</span>'
+      +(c.cm?'<span class="cm">  // '+c.cm+'</span>':'')
+      +'</div>';
+  }
+  codebox.innerHTML = html;
+}
+
+/* 序列徽章 */
+function buildSeqChips(){
+  var html='';
+  for(var i=0;i<SEQ.length;i++) html += '<span class="chip" data-k="'+SEQ[i]+'">'+SEQ[i]+'</span>';
+  seqChipsEl.innerHTML = html;
+}
+
+/* ================= 状态与控制 ================= */
+var cur=0, timer=null, speed=900;
+
+function render(){
+  if(!steps.length) return;
+  var st = steps[cur];
+  /* 序列徽章 */
+  var chips = seqChipsEl.querySelectorAll('.chip');
+  var insIdx = SEQ.indexOf(st.insKey);
+  for(var i=0;i<chips.length;i++){
+    chips[i].classList.toggle('done', insIdx>=0 && i<insIdx);
+    chips[i].classList.toggle('now', i===insIdx);
+  }
+  /* 阶段 */
+  var phaseKey = st.phase;
+  for(var k in STAGE_IDS){
+    var el = document.getElementById(STAGE_IDS[k]);
+    el.classList.toggle('on', k===phaseKey);
+  }
+  /* 伪代码高亮 */
+  var lines = codebox.querySelectorAll('.cl');
+  var active = {};
+  for(var li=0;li<st.lines.length;li++) active[st.lines[li]]=true;
+  for(li=0;li<lines.length;li++){
+    lines[li].classList.toggle('on', !!active[li+1]);
+  }
+  /* 树 */
+  renderTree(st.tree, st.hl, st.zKey);
+  treeSubEl.textContent = '插入 '+st.insKey+' · '+phaseMap[st.phase];
+  /* 说明条 */
+  msgEl.innerHTML = st.msg;
+  msgbarEl.style.background = PHASE_COLOR[st.phase];
+  msgicEl.textContent = PHASE_ICON[st.phase];
+  msgicEl.style.color = PHASE_COLOR[st.phase];
+  msgicEl.style.background = 'rgba(255,255,255,.06)';
+  msgposEl.textContent = (cur+1)+' / '+steps.length;
+  stepinfoEl.textContent = (cur+1)+' / '+steps.length;
+  progbarEl.style.width = (100*(cur+1)/steps.length)+'%';
+  /* 播放按钮 */
+  document.getElementById('btn-play-txt').textContent = timer?'暂停':'播放';
+  document.getElementById('ic-play').style.display = timer?'none':'';
+  document.getElementById('ic-pause').style.display = timer?'':'none';
+}
+
+/* ================= 树的渲染 ================= */
+var elCache = new Map(); // path -> g 元素
+var edgeCache = new Map(); // path -> line
+var H_GAP=74, V_GAP=92, R=22, TOP=58, LEFT=70;
+
+function renderTree(root, hl, zKey){
+  /* 中序编号（真实节点） */
+  var idx=0, cnt=0, maxDepth=0;
+  (function inorder(n,d){
+    if(!n||isNil(n)) return;
+    inorder(n.left,d+1);
+    n._xi = idx++;
+    n._dp = d;
+    cnt++;
+    if(d>maxDepth) maxDepth=d;
+    inorder(n.right,d+1);
+  })(root,0);
+
+  var W = Math.max(cnt-1,5)*H_GAP + LEFT*2;
+  var H = (maxDepth+1)*V_GAP + TOP + 40;
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);
+
+  /* 清掉不再存在的元素 */
+  var activeNodes = new Set(), activeEdges = new Set();
+  var prevNodes = elCache, prevEdges = edgeCache;
+
+  function nodeXY(n){
+    if(isNil(n)) return {x:n._px, y:n._py};
+    return {x:LEFT + n._xi*H_GAP, y:TOP + n._dp*V_GAP};
+  }
+
+  function upsertNode(path, x, y, node){
+    activeNodes.add(path);
+    var g = elCache.get(path);
+    if(!g){
+      g = document.createElementNS('http://www.w3.org/2000/svg','g');
+      g.setAttribute('class','node');
+      g.innerHTML = '<circle class="ring-z" r="30"/>'
+        +'<circle class="ring-x" r="26"/>'
+        +'<circle class="ring-g" r="24"/>'
+        +'<circle class="body" r="22"/>'
+        +'<text class="lab"></text>';
+      svg.appendChild(g);
+      elCache.set(path,g);
+    }
+    g.setAttribute('transform','translate('+x+','+y+')');
+    var circles = g.querySelectorAll('circle');
+    var body = circles[3], lab = g.querySelector('text');
+    if(isNil(node)){
+      body.setAttribute('r','9');
+      body.setAttribute('fill','none');
+      body.setAttribute('stroke','#3B4E74');
+      body.setAttribute('stroke-width','1.5');
+      body.setAttribute('stroke-dasharray','2 3');
+      lab.textContent='';
+      var t=g.querySelector('title');
+      if(!t){ t=document.createElementNS('http://www.w3.org/2000/svg','title'); g.appendChild(t); }
+      t.textContent='NIL（视为黑色）';
+    }else{
+      var t2 = g.querySelector('title'); if(t2) g.removeChild(t2);
+      body.setAttribute('r', String(R));
+      body.setAttribute('stroke-width','2');
+      body.setAttribute('stroke-dasharray','none');
+      if(node.color==='R'){
+        body.setAttribute('fill','#F43F5E');
+        body.setAttribute('stroke','#FF8FA3');
+      }else{
+        body.setAttribute('fill','#334155');
+        body.setAttribute('stroke','#94A3B8');
+      }
+      lab.textContent = node.key;
+    }
+    /* 高亮 */
+    var onZ = node && !isNil(node) && node.key===zKey;
+    var onX = hl.x && node && node.key===hl.x && !isNil(node);
+    var onG = hl.group && node && !isNil(node) && hl.group.indexOf(node.key)>=0;
+    circles[0].classList.toggle('on', !!onZ);
+    circles[1].classList.toggle('on', !!onX);
+    circles[2].classList.toggle('on', !!onG);
+  }
+
+  function upsertEdge(path, x1,y1,x2,y2,isNilEdge){
+    activeEdges.add(path);
+    var e = edgeCache.get(path);
+    if(!e){
+      e = document.createElementNS('http://www.w3.org/2000/svg','line');
+      e.setAttribute('class','edge'+(isNilEdge?' nil':''));
+      svg.insertBefore(e, svg.firstChild);
+      edgeCache.set(path,e);
+    }
+    e.setAttribute('x1',x1); e.setAttribute('y1',y1);
+    e.setAttribute('x2',x2); e.setAttribute('y2',y2);
+  }
+
+  function dfs(n, path, depth, parentXY, isLeft){
+    if(!n) return;
+    if(isNil(n)){
+      /* nil 节点：位于父节点下方，左右错开（空树根为 nil 时不绘制） */
+      if(!parentXY) return;
+      var nx = parentXY.x + (isLeft?-26:26);
+      var ny = parentXY.y + V_GAP;
+      n._px = nx; n._py = ny;
+      upsertNode(path, nx, ny, n);
+      upsertEdge(path+'-e', parentXY.x, parentXY.y+R, nx, ny-R, true);
+      return;
+    }
+    var xy = nodeXY(n);
+    upsertNode(path, xy.x, xy.y, n);
+    if(parentXY) upsertEdge(path+'-e', parentXY.x, parentXY.y+R, xy.x, xy.y-R, false);
+    dfs(n.left, path+'L', depth+1, xy, true);
+    dfs(n.right, path+'R', depth+1, xy, false);
+  }
+
+  dfs(root, 'N', 0, null, false);
+
+  /* 移除失效元素 */
+  for(var p of prevNodes.keys()){
+    if(!activeNodes.has(p)){ var g=prevNodes.get(p); if(g.parentNode) g.parentNode.removeChild(g); prevNodes.delete(p); }
+  }
+  for(var pe of prevEdges.keys()){
+    if(!activeEdges.has(pe)){ var e=prevEdges.get(pe); if(e.parentNode) e.parentNode.removeChild(e); prevEdges.delete(pe); }
+  }
+
+  /* 非空树：清掉空树占位文字 */
+  var hint = svg.querySelector('#empty-hint');
+  if(hint) hint.remove();
+
+  /* 空树占位 */
+  if(cnt===0){
+    svg.innerHTML='<text id="empty-hint" x="'+(W/2)+'" y="'+(H/2)+'" text-anchor="middle" fill="#5A7298" font-size="15" font-family="inherit">空树 — 等待第一个节点插入</text>';
+    elCache.clear(); edgeCache.clear();
+  }
+}
+
+/* ================= 控件事件 ================= */
+function play(){
+  if(timer) return;
+  if(cur>=steps.length-1) cur=0;
+  timer = setInterval(function(){
+    if(cur>=steps.length-1){ pause(); render(); return; }
+    cur++; render();
+  }, speed);
+  render();
+}
+function pause(){
+  if(timer){ clearInterval(timer); timer=null; render(); }
+}
+function togglePlay(){ timer?pause():play(); }
+function prev(){ pause(); if(cur>0){cur--;render();} }
+function next(){ pause(); if(cur<steps.length-1){cur++;render();} }
+function reset(){ pause(); cur=0; render(); }
+
+document.getElementById('btn-play').addEventListener('click', togglePlay);
+document.getElementById('btn-prev').addEventListener('click', prev);
+document.getElementById('btn-next').addEventListener('click', next);
+document.getElementById('btn-reset').addEventListener('click', reset);
+speedEl.addEventListener('input', function(){
+  speed = parseInt(speedEl.value,10);
+  speedValEl.textContent = speed+'ms';
+  if(timer){ pause(); play(); }
+});
+document.addEventListener('keydown', function(e){
+  if(e.target.tagName==='INPUT') return;
+  if(e.key===' '){ e.preventDefault(); togglePlay(); }
+  else if(e.key==='ArrowLeft') prev();
+  else if(e.key==='ArrowRight') next();
+});
+
+/* ================= 启动 ================= */
+buildCode();
+buildSeqChips();
+buildSteps();
+render();
+/* 首次加载自动播放 */
+setTimeout(function(){ play(); }, 600);
+
+/* 暴露调试接口（供自动化验证） */
+window.RBTreeApp = {jump:function(n){pause();cur=Math.max(0,Math.min(steps.length-1,n));render();},
+  play:play,pause:pause,reset:reset,steps:steps,get cur(){return cur;}};
+
+})();
+</script>
+</body>
+</html>
